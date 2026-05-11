@@ -531,7 +531,9 @@ var CAT_NAMES={destaques:{label:"Destaques",icon:"⭐"},eletro:{label:"Eletrodom
 // ============================================================
 var GIFTS=[],reservations={},especieList={},config={},photos=[],rsvpList=[],adminHash="";
 var activeCat="todos",currentGift=null,especieValor=200,rsvpChoice=null,activeRFilter="todos";
-var lastSync=0;
+var lastSync=0,lastLocalWrite=0;
+// Janela de protecao: depois de uma escrita local, pula o sync por X ms
+var SYNC_GUARD_MS=10000;
 
 // ============================================================
 // FIREBASE REST HELPERS
@@ -540,7 +542,13 @@ async function fbGet(path){
   try{var r=await fetch(FB_URL+path+".json?t="+Date.now());if(!r.ok)return null;return await r.json();}catch(e){return null;}
 }
 async function fbPut(path,data){
-  try{var r=await fetch(FB_URL+path+".json",{method:"PUT",body:JSON.stringify(data),headers:{"Content-Type":"application/json"}});return r.ok;}catch(e){return false;}
+  try{
+    var r=await fetch(FB_URL+path+".json",{method:"PUT",body:JSON.stringify(data),headers:{"Content-Type":"application/json"}});
+    if(r.ok){lastLocalWrite=Date.now();return true;}
+    var txt="";try{txt=await r.text();}catch(e){}
+    console.warn("fbPut FAIL "+path+" status="+r.status+" body="+txt);
+    return false;
+  }catch(e){console.warn("fbPut ERR",e);return false;}
 }
 async function fbPatch(path,data){
   try{var r=await fetch(FB_URL+path+".json",{method:"PATCH",body:JSON.stringify(data),headers:{"Content-Type":"application/json"}});return r.ok;}catch(e){return false;}
@@ -594,42 +602,31 @@ async function loadFromFirebase(){
   try{
     var snap=await fbGet("/");
     if(snap===null){
-      // Firebase vazio — popular com defaults
+      // Firebase totalmente vazio — popular com defaults
+      var initCfg={_giftVersion:GIFT_VERSION};
       await fbPut("/gifts",DEFAULT_GIFTS);
-      await fbPut("/giftVersion",GIFT_VERSION);
+      await fbPut("/config",initCfg);
       GIFTS=DEFAULT_GIFTS.map(function(g){return Object.assign({},g);});
-      cacheSet(LK_GIF,GIFTS);
+      config=initCfg;
+      cacheSet(LK_GIF,GIFTS);cacheSet(LK_CFG,config);
       return;
     }
     if(snap.config){config=snap.config;cacheSet(LK_CFG,config);}
     if(snap.photos){photos=Array.isArray(snap.photos)?snap.photos.filter(function(p){return p;}):Object.values(snap.photos).filter(function(p){return p;});cacheSet(LK_PHO,photos);}
 
-    // CHECAGEM DE VERSAO — se versao antiga, atualiza lista preservando reservas
-    var cloudVersion=snap.giftVersion||1;
-    if(cloudVersion<GIFT_VERSION){
-      // Pega reservas existentes (presentes ja reservados)
-      var oldRes=snap.reservations||{};
-      var keptRes={};
-      // So preserva reservas cujo presente AINDA existe na nova lista (mesmo id)
-      DEFAULT_GIFTS.forEach(function(g){if(oldRes[g.id])keptRes[g.id]=oldRes[g.id];});
-      await fbPut("/gifts",DEFAULT_GIFTS);
-      await fbPut("/giftVersion",GIFT_VERSION);
-      await fbPut("/reservations",Object.keys(keptRes).length?keptRes:null);
-      GIFTS=DEFAULT_GIFTS.map(function(g){return Object.assign({},g);});
-      reservations=keptRes;
-      cacheSet(LK_GIF,GIFTS);cacheSet(LK_RES,reservations);
-      showSync("🔄 Lista atualizada");
-    } else if(snap.gifts){
+    // CARREGA gifts do Firebase se existir
+    if(snap.gifts){
       GIFTS=Array.isArray(snap.gifts)?snap.gifts.filter(function(g){return g&&g.id;}):Object.values(snap.gifts).filter(function(g){return g&&g.id;});
       cacheSet(LK_GIF,GIFTS);
-      reservations=snap.reservations||{};cacheSet(LK_RES,reservations);
     } else {
+      // Sem gifts no Firebase — usa defaults e salva
       await fbPut("/gifts",DEFAULT_GIFTS);
-      await fbPut("/giftVersion",GIFT_VERSION);
       GIFTS=DEFAULT_GIFTS.map(function(g){return Object.assign({},g);});
       cacheSet(LK_GIF,GIFTS);
-      reservations=snap.reservations||{};cacheSet(LK_RES,reservations);
+      config._giftVersion=GIFT_VERSION;
+      await fbPut("/config",config);cacheSet(LK_CFG,config);
     }
+    reservations=snap.reservations||{};cacheSet(LK_RES,reservations);
     especieList=snap.especie||{};cacheSet(LK_ESP,especieList);
     var rs=snap.rsvps||{};
     rsvpList=Object.keys(rs).map(function(k){return rs[k];}).sort(function(a,b){return (b.timestamp||0)-(a.timestamp||0);});
@@ -642,7 +639,10 @@ async function loadFromFirebase(){
 }
 
 async function syncFromFirebase(){
-  // Polling silencioso
+  // Janela de protecao: se acabou de salvar algo local, NAO sobrescreve
+  if(Date.now()-lastLocalWrite<SYNC_GUARD_MS)return;
+  // Nao sobrescreve quando o admin esta editando um presente
+  if(document.querySelector(".ga-edit-box"))return;
   var before={r:JSON.stringify(reservations),e:JSON.stringify(especieList),v:JSON.stringify(rsvpList),g:JSON.stringify(GIFTS),c:JSON.stringify(config),p:JSON.stringify(photos)};
   await loadFromFirebase();
   var after={r:JSON.stringify(reservations),e:JSON.stringify(especieList),v:JSON.stringify(rsvpList),g:JSON.stringify(GIFTS),c:JSON.stringify(config),p:JSON.stringify(photos)};
@@ -650,7 +650,6 @@ async function syncFromFirebase(){
   Object.keys(before).forEach(function(k){if(before[k]!==after[k])changed=true;});
   if(changed){
     applyConfig();renderGifts();renderProgress();renderRsvpStats();
-    // Recarrega tabelas do admin se estiverem abertas
     if(document.getElementById("adminPanel").classList.contains("open")){
       loadGuestTable();loadRsvpTable();loadAdminPresentes();loadAdminPhotos();
     }
@@ -1067,7 +1066,8 @@ async function saveGiftEdit(id){
   if(preco<=0){showToast("Preco invalido");return;}
   g.emoji=emoji||"🎁";g.nome=nome;g.desc=desc;g.preco=preco;g.cat=cat;g.url=url;
   showSync("🔥 Salvando...");
-  await fbPut("/gifts",GIFTS);
+  var ok=await fbPut("/gifts",GIFTS);
+  if(!ok){showToast("⚠️ Erro: regra do Firebase bloqueou. Veja painel admin.");showSync("⚠️ Bloqueado",true);return;}
   cacheSet(LK_GIF,GIFTS);
   loadAdminPresentes();renderGifts();renderProgress();showToast("Presente atualizado! ✓");showSync("✅ Salvo");
 }
@@ -1111,7 +1111,11 @@ async function addNewGift(){
   if(preco<=0){showToast("Informe o preco");return;}
   GIFTS.push({id:"g"+Date.now(),cat:cat,emoji:emoji||"🎁",nome:nome,desc:desc,preco:preco,url:url});
   showSync("🔥 Salvando...");
-  await fbPut("/gifts",GIFTS);
+  var ok=await fbPut("/gifts",GIFTS);
+  if(!ok){
+    GIFTS.pop();
+    showToast("⚠️ Erro: Firebase bloqueou. Reveja regras.");showSync("⚠️ Bloqueado",true);return;
+  }
   cacheSet(LK_GIF,GIFTS);
   ["ng-emoji","ng-nome","ng-desc","ng-preco","ng-url"].forEach(function(id){document.getElementById(id).value="";});
   loadAdminPresentes();renderGifts();renderProgress();showToast("Presente adicionado! 🎁");showSync("✅ Salvo");
