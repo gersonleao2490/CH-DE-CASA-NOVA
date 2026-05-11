@@ -388,9 +388,12 @@ textarea.finp{resize:vertical;min-height:72px}
 </div>
 <div class="asec" id="asec-presentes">
   <span class="asec-title">Gerenciar Lista de Presentes</span>
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
     <span style="font-size:.7rem;color:var(--cd)" id="giftCountInfo"></span>
-    <button class="admin-save" id="toggleAddForm" style="margin:0;padding:9px 18px;font-size:.62rem">+ Novo Presente</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="admin-save" id="resetGiftsBtn" style="margin:0;padding:9px 18px;font-size:.62rem;background:rgba(220,80,80,.12);border:1px solid rgba(255,120,120,.28);color:rgba(255,160,160,.95)">↻ Restaurar Lista Padrao</button>
+      <button class="admin-save" id="toggleAddForm" style="margin:0;padding:9px 18px;font-size:.62rem">+ Novo Presente</button>
+    </div>
   </div>
   <div class="add-gift-panel" id="addGiftPanel">
     <span class="asec-title" style="margin-bottom:14px">Adicionar Novo Presente</span>
@@ -446,43 +449,79 @@ var FB_URL = "https://cha-de-casa-nova-33f0d-default-rtdb.firebaseio.com";
 var LK_RES="cdc_res",LK_ESP="cdc_esp",LK_CFG="cdc_cfg",LK_PHO="cdc_pho",LK_GIF="cdc_gif",LK_RSV="cdc_rsv",LK_ADM="cdc_adm";
 
 // ============================================================
-// DEFAULT GIFTS (carregado se Firebase estiver vazio)
+// GIFT VERSION — incrementar para forcar atualizacao da lista padrao
+// ============================================================
+var GIFT_VERSION=3;
+// ============================================================
+// DEFAULT GIFTS (carregado se Firebase estiver vazio ou versao desatualizada)
 // ============================================================
 var DEFAULT_GIFTS=[
-  {id:"d01",cat:"destaques",emoji:"🍟",nome:"Air Fryer 12 Litros",desc:"Fritar, assar e grelhar com pouco oleo — perfeita para o dia a dia",preco:280,url:""},
-  {id:"d02",cat:"destaques",emoji:"📺",nome:"Smart TV 50 pol 4K",desc:"Para os filmes e series no novo lar",preco:1890,url:""},
-  {id:"d03",cat:"destaques",emoji:"🧊",nome:"Frigobar 120L",desc:"Pratico e essencial enquanto organizamos a cozinha",preco:650,url:""},
-  {id:"d04",cat:"destaques",emoji:"🛋",nome:"Sofa 2 Lugares",desc:"Para receber os amigos com conforto",preco:1200,url:""},
-  {id:"d05",cat:"destaques",emoji:"🗄",nome:"Guarda-Roupas 6 Portas",desc:"Com espelho e muito espaco para organizar",preco:1400,url:""},
-  {id:"e01",cat:"eletro",emoji:"📡",nome:"Micro-ondas 30L",desc:"Essencial para as refeicoes rapidas do dia a dia",preco:380,url:""},
-  {id:"e02",cat:"eletro",emoji:"☕",nome:"Cafeteira Eletrica",desc:"Para comecar bem cada manha na nova casa",preco:95,url:""},
-  {id:"e03",cat:"eletro",emoji:"🍹",nome:"Liquidificador Potente",desc:"Para vitaminas, sucos e receitas",preco:120,url:""},
-  {id:"e04",cat:"eletro",emoji:"👕",nome:"Ferro de Passar",desc:"Para as roupas sempre bem cuidadas",preco:89,url:""},
-  {id:"e05",cat:"eletro",emoji:"🌀",nome:"Aspirador de Po",desc:"Para a casa sempre limpa e organizada",preco:180,url:""},
-  {id:"e06",cat:"eletro",emoji:"🥪",nome:"Sanduicheira Grill",desc:"Lanchinhos rapidos e deliciosos em casa",preco:65,url:""},
-  {id:"e07",cat:"eletro",emoji:"💨",nome:"Ventilador 40cm",desc:"Para os dias quentes no apartamento",preco:85,url:""},
-  {id:"e08",cat:"eletro",emoji:"🍰",nome:"Batedeira Planetaria",desc:"Para os bolos e receitas do fim de semana",preco:250,url:""},
-  {id:"l01",cat:"lar",emoji:"🍽",nome:"Mesa de Jantar 4 Lugares",desc:"Para reunir os amigos nas refeicoes",preco:680,url:""},
-  {id:"l02",cat:"lar",emoji:"🖥",nome:"Rack para TV",desc:"Suporte moderno e pratico para a sala",preco:320,url:""},
-  {id:"l03",cat:"lar",emoji:"🎨",nome:"Tapete Sala 2x1.5m",desc:"Para deixar a sala aconchegante",preco:180,url:""},
-  {id:"l04",cat:"lar",emoji:"💡",nome:"Luminaria de Piso",desc:"Iluminacao suave e decorativa",preco:150,url:""},
-  {id:"l05",cat:"lar",emoji:"🪞",nome:"Espelho Grande",desc:"Essencial para o quarto e para ampliar o espaco",preco:200,url:""},
-  {id:"l06",cat:"lar",emoji:"📚",nome:"Prateleiras Decorativas kit 3",desc:"Para organizar e decorar com personalidade",preco:120,url:""},
-  {id:"c01",cat:"cozinha",emoji:"🍲",nome:"Jogo de Panelas 5 pecas",desc:"Conjunto completo antiaderente para todas as receitas",preco:180,url:""},
-  {id:"c02",cat:"cozinha",emoji:"🔪",nome:"Jogo de Facas com Suporte",desc:"Para preparar as refeicoes com seguranca",preco:95,url:""},
-  {id:"c03",cat:"cozinha",emoji:"📦",nome:"Potes Hermeticos kit 8",desc:"Para guardar alimentos e organizar a cozinha",preco:65,url:""},
-  {id:"c04",cat:"cozinha",emoji:"🥗",nome:"Escorredor de Loucas",desc:"Pratico e essencial para qualquer cozinha",preco:55,url:""},
-  {id:"c05",cat:"cozinha",emoji:"🪓",nome:"Tabua de Corte",desc:"Resistente e higienica para o preparo dos alimentos",preco:45,url:""},
-  {id:"c06",cat:"cozinha",emoji:"🥣",nome:"Conjunto de Bowls 6 pcs",desc:"Para saladas, sobremesas e muito mais",preco:38,url:""},
-  {id:"c07",cat:"cozinha",emoji:"🧂",nome:"Porta-Temperos 6 pecas",desc:"Para deixar a cozinha organizada",preco:35,url:""},
-  {id:"c08",cat:"cozinha",emoji:"🧺",nome:"Panos de Prato kit 6",desc:"Coloridos e absorventes para o dia a dia",preco:25,url:""},
-  {id:"c09",cat:"cozinha",emoji:"🗑",nome:"Lixeira de Pedal 5L",desc:"Higienica e pratica para a cozinha",preco:75,url:""},
-  {id:"x01",cat:"enxoval",emoji:"🛏",nome:"Jogo de Cama Casal Premium",desc:"Lencol, capa de duvet e fronhas — conforto total",preco:130,url:""},
-  {id:"x02",cat:"enxoval",emoji:"🛁",nome:"Conjunto de Toalhas",desc:"2 de banho e 2 de rosto, macias e absorventes",preco:85,url:""},
-  {id:"x03",cat:"enxoval",emoji:"😴",nome:"Travesseiro Premium par",desc:"Para noites de sono com mais qualidade",preco:95,url:""},
-  {id:"x04",cat:"enxoval",emoji:"🛡",nome:"Protetor de Colchao Casal",desc:"Protecao e higiene para o colchao",preco:80,url:""},
-  {id:"x05",cat:"enxoval",emoji:"✨",nome:"Almofadas Decorativas kit 2",desc:"Para decorar o sofa com mais charme",preco:70,url:""},
-  {id:"x06",cat:"enxoval",emoji:"🍽",nome:"Jogo Americano kit 4",desc:"Para refeicoes com estilo e praticidade",preco:28,url:""}
+  // ============= DESTAQUES (essenciais grandes — infraestrutura) =============
+  {id:"d01",cat:"destaques",emoji:"🚪",nome:"Guarda-Roupas 6 Portas",desc:"Com espelho e muito espaco para organizar",preco:1400,url:""},
+  {id:"d02",cat:"destaques",emoji:"🚿",nome:"Pia de Cozinha com Gabinete",desc:"Pia inox com balcao — base essencial da cozinha",preco:850,url:""},
+  {id:"d03",cat:"destaques",emoji:"🗄",nome:"Armario de Cozinha Aereo",desc:"Modulado com portas — organizacao da cozinha",preco:1200,url:""},
+  {id:"d04",cat:"destaques",emoji:"🔥",nome:"Cooktop a Gas 4 Bocas",desc:"Vidro temperado com acendimento automatico",preco:680,url:""},
+  {id:"d05",cat:"destaques",emoji:"🍳",nome:"Forno Eletrico de Bancada 45L",desc:"Para assar paes, bolos e refeicoes — essencial",preco:580,url:""},
+  {id:"d06",cat:"destaques",emoji:"📡",nome:"Micro-ondas 30L",desc:"Praticidade do dia a dia — refeicoes rapidas",preco:480,url:""},
+  // ============= ELETROS =============
+  {id:"e02",cat:"eletro",emoji:"🌀",nome:"Maquina de Lavar Roupas 11kg",desc:"Para as roupas do dia a dia",preco:1900,url:""},
+  {id:"e03",cat:"eletro",emoji:"🍟",nome:"Air Fryer 12 Litros",desc:"Fritar, assar e grelhar com pouco oleo",preco:380,url:""},
+  {id:"e04",cat:"eletro",emoji:"📺",nome:"Smart TV 50 pol 4K",desc:"Para os filmes e series no novo lar",preco:1890,url:""},
+  {id:"e05",cat:"eletro",emoji:"🧊",nome:"Frigobar 120L",desc:"Util como apoio na area externa ou quarto",preco:650,url:""},
+  {id:"e06",cat:"eletro",emoji:"☕",nome:"Cafeteira Eletrica",desc:"Para comecar bem cada manha",preco:140,url:""},
+  {id:"e07",cat:"eletro",emoji:"🍹",nome:"Liquidificador Potente",desc:"Para vitaminas, sucos e receitas",preco:180,url:""},
+  {id:"e08",cat:"eletro",emoji:"👕",nome:"Ferro de Passar a Vapor",desc:"Para as roupas sempre bem cuidadas",preco:110,url:""},
+  {id:"e09",cat:"eletro",emoji:"🌬️",nome:"Aspirador de Po e Agua",desc:"Para limpeza pesada e do dia a dia",preco:220,url:""},
+  {id:"e10",cat:"eletro",emoji:"🥪",nome:"Sanduicheira Grill",desc:"Lanchinhos rapidos e deliciosos",preco:95,url:""},
+  {id:"e11",cat:"eletro",emoji:"💨",nome:"Ventilador 40cm",desc:"Para os dias quentes no apartamento",preco:110,url:""},
+  {id:"e12",cat:"eletro",emoji:"🍰",nome:"Batedeira Planetaria",desc:"Para os bolos e receitas do fim de semana",preco:280,url:""},
+  {id:"e13",cat:"eletro",emoji:"🥤",nome:"Mixer / Processador",desc:"Para sopas, molhos e pates",preco:180,url:""},
+  {id:"e14",cat:"eletro",emoji:"🫖",nome:"Chaleira Eletrica",desc:"Para chas e cafes rapidos",preco:90,url:""},
+  // ============= LAR E DECORACAO =============
+  {id:"l03",cat:"lar",emoji:"🛋",nome:"Sofa 2 Lugares",desc:"Para receber os amigos com conforto",preco:1200,url:""},
+  {id:"l04",cat:"lar",emoji:"🪑",nome:"Mesa de Jantar 4 Lugares",desc:"Para reunir os amigos nas refeicoes",preco:680,url:""},
+  {id:"l05",cat:"lar",emoji:"🖥",nome:"Rack para TV",desc:"Suporte moderno e pratico para a sala",preco:340,url:""},
+  {id:"l06",cat:"lar",emoji:"🗃️",nome:"Comoda 4 Gavetas",desc:"Para organizar o quarto",preco:520,url:""},
+  {id:"l07",cat:"lar",emoji:"🛏️",nome:"Mesa de Cabeceira (par)",desc:"Funcional e decorativa — vem em par",preco:380,url:""},
+  {id:"l08",cat:"lar",emoji:"🎨",nome:"Tapete Sala 2x1.5m",desc:"Para deixar a sala aconchegante",preco:220,url:""},
+  {id:"l09",cat:"lar",emoji:"💡",nome:"Luminaria de Piso",desc:"Iluminacao suave e decorativa",preco:180,url:""},
+  {id:"l10",cat:"lar",emoji:"🪞",nome:"Espelho Grande de Parede",desc:"Para ampliar o espaco",preco:240,url:""},
+  {id:"l11",cat:"lar",emoji:"📚",nome:"Prateleiras Decorativas kit 3",desc:"Para organizar e decorar",preco:140,url:""},
+  {id:"l12",cat:"lar",emoji:"🪟",nome:"Cortina Sala 2,80m com Trilho",desc:"Para conforto e privacidade",preco:280,url:""},
+  {id:"l13",cat:"lar",emoji:"🌙",nome:"Cortina Quarto Blackout",desc:"Para um sono tranquilo",preco:260,url:""},
+  {id:"l14",cat:"lar",emoji:"🌿",nome:"Kit Vasos Decorativos",desc:"Para dar vida ao ambiente",preco:120,url:""},
+  // ============= COZINHA =============
+  {id:"c01",cat:"cozinha",emoji:"🍲",nome:"Jogo de Panelas 5 pecas",desc:"Conjunto antiaderente completo",preco:240,url:""},
+  {id:"c02",cat:"cozinha",emoji:"🍳",nome:"Frigideira Antiaderente 26cm",desc:"Para o dia a dia da cozinha",preco:90,url:""},
+  {id:"c03",cat:"cozinha",emoji:"🔪",nome:"Jogo de Facas com Suporte",desc:"Para preparar refeicoes com seguranca",preco:130,url:""},
+  {id:"c04",cat:"cozinha",emoji:"🍽",nome:"Jogo de Pratos 12 pecas",desc:"Rasos, fundos e de sobremesa",preco:180,url:""},
+  {id:"c05",cat:"cozinha",emoji:"🥄",nome:"Faqueiro 24 pecas",desc:"Conjunto de talheres para 6 pessoas",preco:160,url:""},
+  {id:"c06",cat:"cozinha",emoji:"🥃",nome:"Jogo de Copos 12 pecas",desc:"Copo de agua e suco",preco:90,url:""},
+  {id:"c07",cat:"cozinha",emoji:"🍷",nome:"Tacas de Vinho kit 6",desc:"Para os momentos especiais",preco:120,url:""},
+  {id:"c08",cat:"cozinha",emoji:"☕",nome:"Jogo de Xicaras Cafe 6 pecas",desc:"Para o cafezinho da tarde",preco:85,url:""},
+  {id:"c09",cat:"cozinha",emoji:"📦",nome:"Potes Hermeticos kit 10",desc:"Para guardar alimentos secos",preco:90,url:""},
+  {id:"c10",cat:"cozinha",emoji:"🥗",nome:"Escorredor de Loucas",desc:"Pratico e essencial",preco:75,url:""},
+  {id:"c11",cat:"cozinha",emoji:"🪓",nome:"Tabua de Corte Madeira",desc:"Resistente e higienica",preco:60,url:""},
+  {id:"c12",cat:"cozinha",emoji:"🥣",nome:"Conjunto de Bowls 6 pcs",desc:"Para saladas e sobremesas",preco:55,url:""},
+  {id:"c13",cat:"cozinha",emoji:"🧂",nome:"Porta-Temperos 8 pecas",desc:"Para organizar a cozinha",preco:65,url:""},
+  {id:"c14",cat:"cozinha",emoji:"🧺",nome:"Panos de Prato kit 6",desc:"Coloridos e absorventes",preco:35,url:""},
+  {id:"c15",cat:"cozinha",emoji:"🗑",nome:"Lixeira de Pedal 12L",desc:"Higienica e pratica",preco:95,url:""},
+  {id:"c16",cat:"cozinha",emoji:"🥧",nome:"Formas de Bolo kit 3",desc:"Redonda, retangular e ingles",preco:80,url:""},
+  {id:"c17",cat:"cozinha",emoji:"🥄",nome:"Utensilios Silicone kit 7",desc:"Concha, escumadeira, espatula e mais",preco:75,url:""},
+  {id:"c18",cat:"cozinha",emoji:"🫙",nome:"Porta-Mantimentos Acrilico kit 4",desc:"Para arroz, feijao, acucar e cafe",preco:90,url:""},
+  // ============= ENXOVAL E BANHO =============
+  {id:"x01",cat:"enxoval",emoji:"🛏",nome:"Jogo de Cama Casal Premium",desc:"Lencol, capa de duvet e fronhas",preco:180,url:""},
+  {id:"x02",cat:"enxoval",emoji:"🛌",nome:"Jogo de Cama Extra (2o jogo)",desc:"Para revezar com o primeiro",preco:150,url:""},
+  {id:"x03",cat:"enxoval",emoji:"🧣",nome:"Edredom Casal",desc:"Para as noites mais frias",preco:220,url:""},
+  {id:"x04",cat:"enxoval",emoji:"🧸",nome:"Cobertor Casal Microfibra",desc:"Quentinho e macio",preco:130,url:""},
+  {id:"x05",cat:"enxoval",emoji:"😴",nome:"Travesseiro Premium par",desc:"Para noites de sono de qualidade",preco:120,url:""},
+  {id:"x06",cat:"enxoval",emoji:"🛡",nome:"Protetor de Colchao Casal",desc:"Protecao e higiene",preco:90,url:""},
+  {id:"x07",cat:"enxoval",emoji:"🛁",nome:"Conjunto de Toalhas Banho kit 4",desc:"2 de banho e 2 de rosto",preco:140,url:""},
+  {id:"x08",cat:"enxoval",emoji:"🚿",nome:"Tapete de Banheiro Antiderrapante",desc:"Para mais seguranca no banho",preco:55,url:""},
+  {id:"x09",cat:"enxoval",emoji:"🧴",nome:"Kit Banheiro 5 pecas",desc:"Porta-escova, saboneteira e dispenser",preco:70,url:""},
+  {id:"x10",cat:"enxoval",emoji:"✨",nome:"Almofadas Decorativas kit 4",desc:"Para decorar o sofa",preco:90,url:""},
+  {id:"x11",cat:"enxoval",emoji:"🍽",nome:"Jogo Americano kit 6",desc:"Para refeicoes com estilo",preco:42,url:""},
+  {id:"x12",cat:"enxoval",emoji:"🍴",nome:"Toalha de Mesa Retangular",desc:"Para almocos e jantares especiais",preco:85,url:""}
 ];
 var CATS=[{id:"todos",label:"Todos",icon:"✨"},{id:"destaques",label:"Destaques",icon:"⭐"},{id:"eletro",label:"Eletros",icon:"🔌"},{id:"lar",label:"Lar",icon:"🏠"},{id:"cozinha",label:"Cozinha",icon:"🍳"},{id:"enxoval",label:"Enxoval",icon:"🛁"},{id:"especie",label:"Em Especie",icon:"💝"}];
 var CAT_NAMES={destaques:{label:"Destaques",icon:"⭐"},eletro:{label:"Eletrodomesticos",icon:"🔌"},lar:{label:"Lar e Decoracao",icon:"🏠"},cozinha:{label:"Cozinha",icon:"🍳"},enxoval:{label:"Enxoval",icon:"🛁"},especie:{label:"Presente em Especie",icon:"💝"}};
@@ -557,22 +596,40 @@ async function loadFromFirebase(){
     if(snap===null){
       // Firebase vazio — popular com defaults
       await fbPut("/gifts",DEFAULT_GIFTS);
+      await fbPut("/giftVersion",GIFT_VERSION);
       GIFTS=DEFAULT_GIFTS.map(function(g){return Object.assign({},g);});
       cacheSet(LK_GIF,GIFTS);
       return;
     }
     if(snap.config){config=snap.config;cacheSet(LK_CFG,config);}
     if(snap.photos){photos=Array.isArray(snap.photos)?snap.photos.filter(function(p){return p;}):Object.values(snap.photos).filter(function(p){return p;});cacheSet(LK_PHO,photos);}
-    if(snap.gifts){
+
+    // CHECAGEM DE VERSAO — se versao antiga, atualiza lista preservando reservas
+    var cloudVersion=snap.giftVersion||1;
+    if(cloudVersion<GIFT_VERSION){
+      // Pega reservas existentes (presentes ja reservados)
+      var oldRes=snap.reservations||{};
+      var keptRes={};
+      // So preserva reservas cujo presente AINDA existe na nova lista (mesmo id)
+      DEFAULT_GIFTS.forEach(function(g){if(oldRes[g.id])keptRes[g.id]=oldRes[g.id];});
+      await fbPut("/gifts",DEFAULT_GIFTS);
+      await fbPut("/giftVersion",GIFT_VERSION);
+      await fbPut("/reservations",Object.keys(keptRes).length?keptRes:null);
+      GIFTS=DEFAULT_GIFTS.map(function(g){return Object.assign({},g);});
+      reservations=keptRes;
+      cacheSet(LK_GIF,GIFTS);cacheSet(LK_RES,reservations);
+      showSync("🔄 Lista atualizada");
+    } else if(snap.gifts){
       GIFTS=Array.isArray(snap.gifts)?snap.gifts.filter(function(g){return g&&g.id;}):Object.values(snap.gifts).filter(function(g){return g&&g.id;});
       cacheSet(LK_GIF,GIFTS);
+      reservations=snap.reservations||{};cacheSet(LK_RES,reservations);
     } else {
-      // Inicializa gifts no Firebase com defaults
       await fbPut("/gifts",DEFAULT_GIFTS);
+      await fbPut("/giftVersion",GIFT_VERSION);
       GIFTS=DEFAULT_GIFTS.map(function(g){return Object.assign({},g);});
       cacheSet(LK_GIF,GIFTS);
+      reservations=snap.reservations||{};cacheSet(LK_RES,reservations);
     }
-    reservations=snap.reservations||{};cacheSet(LK_RES,reservations);
     especieList=snap.especie||{};cacheSet(LK_ESP,especieList);
     var rs=snap.rsvps||{};
     rsvpList=Object.keys(rs).map(function(k){return rs[k];}).sort(function(a,b){return (b.timestamp||0)-(a.timestamp||0);});
@@ -779,6 +836,7 @@ function bindEvents(){
     var cg=e.target.closest("[data-cgid]");if(cg){loadAdminPresentes();return;}
     var tog=e.target.closest("#toggleAddForm");if(tog){toggleAddGiftPanel();return;}
     var ag=e.target.closest("#addGiftBtn");if(ag){addNewGift();return;}
+    var rg=e.target.closest("#resetGiftsBtn");if(rg){resetGiftsToDefault();return;}
     var delr=e.target.closest("[data-delrsvp]");if(delr){deleteRsvp(delr.dataset.delrsvp);return;}
     var dpho=e.target.closest("[data-pidx]");if(dpho){deletePhoto(parseInt(dpho.dataset.pidx));return;}
   });
@@ -1026,8 +1084,153 @@ async function deleteGift(id){
 
 function toggleAddGiftPanel(){var p=document.getElementById("addGiftPanel");p.classList.toggle("open");document.getElementById("toggleAddForm").textContent=p.classList.contains("open")?"− Cancelar":"+ Novo Presente";}
 
+async function resetGiftsToDefault(){
+  if(!confirm("Restaurar lista padrao? Todos os presentes personalizados serao perdidos. Reservas dos presentes que ainda existirem na lista padrao serao preservadas."))return;
+  showSync("🔄 Restaurando lista padrao...");
+  // Preserva reservas de presentes que existem na nova lista
+  var keptRes={};
+  DEFAULT_GIFTS.forEach(function(g){if(reservations[g.id])keptRes[g.id]=reservations[g.id];});
+  GIFTS=DEFAULT_GIFTS.map(function(g){return Object.assign({},g);});
+  reservations=keptRes;
+  await fbPut("/gifts",GIFTS);
+  await fbPut("/giftVersion",GIFT_VERSION);
+  await fbPut("/reservations",Object.keys(keptRes).length?keptRes:null);
+  cacheSet(LK_GIF,GIFTS);cacheSet(LK_RES,reservations);
+  loadAdminPresentes();renderGifts();renderProgress();
+  showToast("Lista padrao restaurada! ✓");showSync("✅ Restaurada");
+}
+
 async function addNewGift(){
   var emoji=document.getElementById("ng-emoji").value.trim();
+  var nome=document.getElementById("ng-nome").value.trim();
+  var desc=document.getElementById("ng-desc").value.trim();
+  var preco=parseFloat(document.getElementById("ng-preco").value)||0;
+  var cat=document.getElementById("ng-cat").value;
+  var url=document.getElementById("ng-url").value.trim();
+  if(!nome){showToast("Nome e obrigatorio");return;}
+  if(preco<=0){showToast("Informe o preco");return;}
+  GIFTS.push({id:"g"+Date.now(),cat:cat,emoji:emoji||"🎁",nome:nome,desc:desc,preco:preco,url:url});
+  showSync("🔥 Salvando...");
+  await fbPut("/gifts",GIFTS);
+  cacheSet(LK_GIF,GIFTS);
+  ["ng-emoji","ng-nome","ng-desc","ng-preco","ng-url"].forEach(function(id){document.getElementById(id).value="";});
+  loadAdminPresentes();renderGifts();renderProgress();showToast("Presente adicionado! 🎁");showSync("✅ Salvo");
+}
+
+// ============================================================
+// FOTOS — Salvas no Firebase como dataURL (max 4)
+// ============================================================
+function loadAdminPhotos(){
+  var grid=document.getElementById("adminPhotoGrid");if(!grid)return;
+  if(!photos.length){grid.innerHTML='<p style="font-size:.7rem;color:var(--cd);grid-column:span 3">Nenhuma foto ainda.</p>';return;}
+  grid.innerHTML=photos.map(function(p,i){return'<div class="photo-item"><img src="'+esc(p)+'" alt="Foto" loading="lazy"><button class="photo-del" data-pidx="'+i+'">x</button></div>';}).join("");
+}
+
+function resizeImage(file,maxDim,quality){
+  return new Promise(function(resolve){
+    var reader=new FileReader();
+    reader.onload=function(e){
+      var img=new Image();
+      img.onload=function(){
+        var w=img.width,h=img.height;
+        if(w>maxDim||h>maxDim){
+          if(w>h){h=Math.round(h*maxDim/w);w=maxDim;}
+          else{w=Math.round(w*maxDim/h);h=maxDim;}
+        }
+        var c=document.createElement("canvas");c.width=w;c.height=h;
+        var ctx=c.getContext("2d");ctx.drawImage(img,0,0,w,h);
+        resolve(c.toDataURL("image/jpeg",quality));
+      };
+      img.src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function uploadPhotos(inp){
+  var files=Array.from(inp.files);
+  var rem=4-photos.length;
+  if(rem<=0){showToast("Maximo 4 fotos. Remova alguma antes.");inp.value="";return;}
+  var toAdd=files.slice(0,rem);
+  showSync("🔥 Otimizando e enviando...");
+  for(var i=0;i<toAdd.length;i++){
+    try{
+      var dataUrl=await resizeImage(toAdd[i],900,0.78);
+      photos.push(dataUrl);
+    }catch(e){}
+  }
+  var ok=await fbPut("/photos",photos);
+  if(!ok){showToast("Erro ao enviar fotos");showSync("⚠️ Erro",true);return;}
+  cacheSet(LK_PHO,photos);
+  loadAdminPhotos();renderPhotos();
+  showToast(toAdd.length+" foto(s) enviada(s) ✓");showSync("✅ Salvo na nuvem");
+  inp.value="";
+  if(files.length>rem)showToast("Maximo 4 fotos. "+(files.length-rem)+" ignorada(s).");
+}
+
+async function deletePhoto(i){
+  if(!confirm("Remover esta foto?"))return;
+  photos.splice(i,1);
+  showSync("🔥 Removendo...");
+  await fbPut("/photos",photos);
+  cacheSet(LK_PHO,photos);
+  loadAdminPhotos();renderPhotos();showToast("Foto removida");showSync("✅ Removido");
+}
+
+// ============================================================
+// RESERVAS — Tabela admin
+// ============================================================
+function loadGuestTable(){
+  var wrap=document.getElementById("guestTableWrap");if(!wrap)return;
+  var rows=[];
+  Object.keys(reservations).forEach(function(id){
+    var r=reservations[id];var g=GIFTS.find(function(x){return x.id===id;});
+    rows.push({tipo:"presente",key:id,nome:r.nome,tel:r.telefone||"-",item:(g?g.emoji+" "+g.nome:"Item removido"),valor:"R$ "+(g?g.preco.toLocaleString("pt-BR"):"-"),data:r.data||"-"});
+  });
+  Object.keys(especieList).forEach(function(k){
+    var e=especieList[k];
+    rows.push({tipo:"especie",key:k,nome:e.nome,tel:e.telefone||"-",item:"💝 Especie",valor:"R$ "+e.valor.toLocaleString("pt-BR"),data:e.data||"-"});
+  });
+  if(!rows.length){wrap.innerHTML='<p style="font-size:.76rem;color:var(--cd);padding:20px 0">Nenhuma reserva ainda.</p>';return;}
+  var th='<thead><tr><th>Nome</th><th>WhatsApp</th><th>Presente</th><th>Valor</th><th>Data</th><th>Acao</th></tr></thead>';
+  var tb='<tbody>'+rows.map(function(r){return'<tr><td>'+esc(r.nome)+'</td><td>'+esc(r.tel)+'</td><td>'+r.item+'</td><td>'+r.valor+'</td><td>'+esc(r.data)+'</td><td><button class="cancel-btn" data-tipo="'+r.tipo+'" data-key="'+esc(r.key)+'">Cancelar</button></td></tr>';}).join("")+"</tbody>";
+  wrap.innerHTML='<table class="guests-tbl">'+th+tb+"</table>";
+}
+
+async function cancelReserva(tipo,key){
+  if(!confirm("Cancelar esta reserva?"))return;
+  showSync("🔥 Cancelando...");
+  if(tipo==="presente"){
+    delete reservations[key];
+    await fbDel("/reservations/"+key);
+    cacheSet(LK_RES,reservations);
+  } else {
+    delete especieList[key];
+    await fbDel("/especie/"+key);
+    cacheSet(LK_ESP,especieList);
+  }
+  loadGuestTable();renderGifts();renderProgress();showToast("Reserva cancelada");showSync("✅ Removido");
+}
+
+async function changePassword(){
+  var p1=document.getElementById("newPwd1").value;var p2=document.getElementById("newPwd2").value;
+  if(!p1){showToast("Digite a nova senha");return;}
+  if(p1!==p2){showToast("As senhas nao conferem");return;}
+  if(p1.length<4){showToast("Senha muito curta");return;}
+  var hash=await hashStr(p1);
+  showSync("🔥 Atualizando...");
+  await fbPut("/adminHash",hash);
+  adminHash=hash;localStorage.setItem(LK_ADM,hash);
+  document.getElementById("newPwd1").value="";document.getElementById("newPwd2").value="";
+  showToast("Senha alterada! 🔒");showSync("✅ Atualizada");
+}
+
+// ============================================================
+// START
+// ============================================================
+init();
+</script>
+</body></html>ue.trim();
   var nome=document.getElementById("ng-nome").value.trim();
   var desc=document.getElementById("ng-desc").value.trim();
   var preco=parseFloat(document.getElementById("ng-preco").value)||0;
